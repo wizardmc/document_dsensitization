@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据脱敏工具</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .form-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            background-color: #f8f9fa;
+        }
+        .strategy-options {
+            display: none;
+        }
+        .strategy-options.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="mb-5 text-center">
+            <h1>法律文档脱敏工具</h1>
+            <p class="lead">安全处理敏感数据，保护隐私信息</p>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-info">
+                    <ul class="mb-0">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-md-12">
+                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <!-- 文件上传部分 -->
+                    <div class="form-section">
+                        <h3>上传文档</h3>
+                        <div class="mb-3">
+                            <label for="file" class="form-label">选择文档文件</label>
+                            <input type="file" class="form-control" id="file" name="file" required>
+                            <div class="form-text">支持的文件格式: PDF, DOC, DOCX, TXT, MD</div>
+                        </div>
+                    </div>
+
+                    <!-- 脱敏策略配置部分 -->
+                    <div class="form-section">
+                        <h3>脱敏策略配置</h3>
+                        <div class="mb-3">
+                            <label for="default_strategy" class="form-label">默认脱敏策略</label>
+                            <select class="form-select" id="default_strategy" name="default_strategy">
+                                {% for strategy_type in strategy_types %}
+                                    <option value="{{ strategy_type }}">{{ strategy_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- TypeBasedStrategy 配置 -->
+                        <div id="typeBased" class="strategy-options active">
+                            <h4>实体类型替换模板</h4>
+                            <div class="row">
+                                {% for entity_type in entity_types %}
+                                    <div class="col-md-4 mb-3">
+                                        <label for="template_{{ entity_type }}" class="form-label">{{ entity_type }}</label>
+                                        <input type="text" class="form-control" id="template_{{ entity_type }}" name="template_{{ entity_type }}" value="{% if entity_type == 'PER' %}某人{% elif entity_type == 'ORG' %}某机构{% elif entity_type == 'LOC' %}某地点{% elif entity_type == 'GPE' %}某地区{% elif entity_type == 'PHONE' %}电话号码{% elif entity_type == 'ID' %}身份证号{% elif entity_type == 'BANK' %}银行卡号{% elif entity_type == 'EMAIL' %}电子邮箱{% elif entity_type == 'IP' %}IP地址{% elif entity_type == 'DATE' %}某日期{% elif entity_type == 'TIME' %}某时间{% elif entity_type == 'MONEY' %}某金额{% else %}***{% endif %}">
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- ReplacementStrategy 配置 -->
+                        <div id="replacement" class="strategy-options">
+                            <div class="mb-3">
+                                <label for="replacement_text" class="form-label">替换文本</label>
+                                <input type="text" class="form-control" id="replacement_text" name="replacement_text" value="***">
+                            </div>
+                        </div>
+
+                        <!-- HashStrategy 配置 -->
+                        <div id="hash" class="strategy-options">
+                            <div class="mb-3">
+                                <label for="salt" class="form-label">盐值</label>
+                                <input type="text" class="form-control" id="salt" name="salt" placeholder="可选，用于增强哈希安全性">
+                            </div>
+                            <div class="mb-3">
+                                <label for="hash_length" class="form-label">哈希长度</label>
+                                <input type="number" class="form-control" id="hash_length" name="hash_length" value="8" min="1" max="32">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">开始脱敏</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 切换脱敏策略选项
+        document.getElementById('default_strategy').addEventListener('change', function() {
+            // 隐藏所有策略选项
+            document.querySelectorAll('.strategy-options').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            
+            // 显示选中的策略选项
+            if (this.value === 'TypeBasedStrategy') {
+                document.getElementById('typeBased').classList.add('active');
+            } else if (this.value === 'ReplacementStrategy') {
+                document.getElementById('replacement').classList.add('active');
+            } else if (this.value === 'HashStrategy') {
+                document.getElementById('hash').classList.add('active');
+            }
+        });
+
+        // 表单验证
+        (function() {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
+</body>
+</html>
