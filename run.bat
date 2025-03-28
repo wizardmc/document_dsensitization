@@ -1,114 +1,119 @@
 @echo off
-chcp 936 >nul
 setlocal enabledelayedexpansion
 
-:: ===== CONFIGURATION =====
-set PYTHON_URL=https://mirrors.aliyun.com/python-release/windows/python-3.10.9-amd64.exe
-set VENV_DIR=venv
-set APP_ENTRY=Data_Masking\ui\gui_app.py
+echo ===================================================
+echo Document AI Desensitization Tool Installation Script
+echo ===================================================
 
-:: Mirror settings
-set PRIMARY_SOURCE=https://pypi.tuna.tsinghua.edu.cn/simple
-set SECONDARY_SOURCE=https://mirrors.aliyun.com/pypi/simple
-set MAGIC_PDF_SOURCE=https://wheels.myhloli.com
-:: ========================
-
-:: Check Python
-where python >nul 2>&1
+:: Check if Python is installed
+python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] Python not found!
-    echo Please download from:
-    echo %PYTHON_URL%
-    echo Remember to check "Add Python to PATH"
-    timeout /t 15
-    start "" "%PYTHON_URL%"
+    echo Python not detected. Please install Python 3.10.9
+    echo Opening Python download link...
+    start https://mirrors.aliyun.com/python-release/windows/python-3.10.9-amd64.exe
+    echo After installation, please run this script again
+    pause
     exit /b 1
 )
 
-:: Show Python version
-for /f "tokens=2 delims= " %%v in ('python --version 2^>^&1') do set PY_VER=%%v
-echo Detected Python: !PY_VER!
+:: Check Python version
+for /f "tokens=2" %%a in ('python --version 2^>^&1') do set "pyver=%%a"
+echo Detected Python version: %pyver%
 
-:: Create virtual environment
-if not exist "%VENV_DIR%\" (
+:: Check if virtual environment exists
+if not exist "venv\" (
     echo Creating virtual environment...
-    python -m venv "%VENV_DIR%"
+    python -m venv venv
     if %errorlevel% neq 0 (
-        echo [ERROR] Failed to create venv
+        echo Failed to create virtual environment. Please check your Python installation
         pause
         exit /b 1
     )
-)
-
-:: Activate venv
-call "%VENV_DIR%\Scripts\activate.bat"
-if %errorlevel% neq 0 (
-    echo [ERROR] Failed to activate venv
-    pause
-    exit /b 1
-)
-
-:: Upgrade pip
-echo Upgrading pip...
-python -m pip install --upgrade pip --index-url="%PRIMARY_SOURCE%" --retries 3 --timeout 60
-if %errorlevel% neq 0 (
-    echo [WARNING] Retrying with secondary mirror...
-    python -m pip install --upgrade pip --index-url="%SECONDARY_SOURCE%" --retries 2 --timeout 90
-)
-
-:: Install dependencies
-echo Installing dependencies...
-call :install_deps numpy packaging addict simplejson sortedcontainers
-call :install_deps datasets==2.16.1 torch Pillow PyQt5 pyinstaller
-
-:: Install magic-pdf
-echo Installing magic-pdf...
-pip install -U "magic-pdf[full]" ^
-    --extra-index-url="%MAGIC_PDF_SOURCE%" ^
-    --index-url="%PRIMARY_SOURCE%" ^
-    --retries 5 ^
-    --timeout 600
-if %errorlevel% neq 0 (
-    echo [ERROR] magic-pdf installation failed!
-    echo Possible solutions:
-    echo 1. Check network connection to !MAGIC_PDF_SOURCE!
-    echo 2. Disable firewall temporarily
-    pause
-    exit /b 1
-)
-
-:: Verify installation
-pip list --format=columns | findstr /i "magic-pdf torch"
-
-:: Launch application
-if exist "%APP_ENTRY%" (
-    echo Starting application...
-    python "%APP_ENTRY%"
+    echo Virtual environment created successfully
 ) else (
-    echo [ERROR] App entry not found: %APP_ENTRY%
-    echo Directory listing:
-    dir /b "%cd%\Data_Masking\ui\*.py"
+    echo Existing virtual environment detected
+)
+
+:: Activate virtual environment
+call venv\Scripts\activate.bat
+if %errorlevel% neq 0 (
+    echo Failed to activate virtual environment
+    pause
+    exit /b 1
+)
+echo Virtual environment activated
+
+:: Check if dependencies are installed
+set "need_install=0"
+python -c "import modelscope" 2>nul || set "need_install=1"
+python -c "import numpy" 2>nul || set "need_install=1"
+python -c "import packaging" 2>nul || set "need_install=1"
+python -c "import addict" 2>nul || set "need_install=1"
+python -c "import datasets" 2>nul || set "need_install=1"
+python -c "import torch" 2>nul || set "need_install=1"
+python -c "import PIL" 2>nul || set "need_install=1"
+python -c "import simplejson" 2>nul || set "need_install=1"
+python -c "import sortedcontainers" 2>nul || set "need_install=1"
+python -c "import PyQt5" 2>nul || set "need_install=1"
+python -c "import magic_pdf" 2>nul || set "need_install=1"
+
+if "%need_install%"=="1" (
+    echo Installing dependencies...
+    
+    :: Try using Aliyun mirror
+    echo Trying to install regular dependencies using Aliyun mirror...
+    pip install -U pip -i https://mirrors.aliyun.com/pypi/simple/
+    pip install modelscope numpy packaging addict "datasets==2.16.1" torch Pillow simplejson sortedcontainers PyQt5 -i https://mirrors.aliyun.com/pypi/simple/
+    
+    if %errorlevel% neq 0 (
+        echo Aliyun mirror installation failed, trying Tsinghua mirror...
+        pip install modelscope numpy packaging addict "datasets==2.16.1" torch Pillow simplejson sortedcontainers PyQt5 -i https://pypi.tuna.tsinghua.edu.cn/simple/
+        
+        if %errorlevel% neq 0 (
+            echo Tsinghua mirror installation failed, trying default source...
+            pip install modelscope numpy packaging addict "datasets==2.16.1" torch Pillow simplejson sortedcontainers PyQt5
+            
+            if %errorlevel% neq 0 (
+                echo Failed to install dependencies. Please check your network connection
+                pause
+                exit /b 1
+            )
+        )
+    )
+    
+    :: Install special dependency magic-pdf
+    echo Installing special dependency magic-pdf...
+    pip install -U "magic-pdf[full]" --extra-index-url https://wheels.myhloli.com -i https://mirrors.aliyun.com/pypi/simple
+    
+    if %errorlevel% neq 0 (
+        echo Trying alternative method to install magic-pdf...
+        pip install -U "magic-pdf[full]" --extra-index-url https://wheels.myhloli.com -i https://pypi.tuna.tsinghua.edu.cn/simple/
+        
+        if %errorlevel% neq 0 (
+            echo Failed to install magic-pdf. Please install manually
+            echo Recommended command: pip install -U "magic-pdf[full]" --extra-index-url https://wheels.myhloli.com
+            pause
+            exit /b 1
+        )
+    )
+    
+    echo Dependencies installation completed
+) else (
+    echo All dependencies are already installed
+)
+
+:: Launch the application
+echo Launching application...
+python Data_Masking/ui/gui_app.py
+
+:: If application exits abnormally, keep the window open
+if %errorlevel% neq 0 (
+    echo Application exited abnormally with error code: %errorlevel%
     pause
 )
-exit /b
 
-:: ===== FUNCTIONS =====
-:install_deps
-echo Installing: %*
-pip install %* ^
-    --index-url="%PRIMARY_SOURCE%" ^
-    --retries 3 ^
-    --timeout 120
-if %errorlevel% neq 0 (
-    echo [WARNING] Retrying with secondary mirror...
-    pip install %* ^
-        --index-url="%SECONDARY_SOURCE%" ^
-        --retries 2 ^
-        --timeout 180
-    if %errorlevel% neq 0 (
-        echo [ERROR] Failed to install: %*
-        pause
-        exit /b 1
-    )
-)
-exit /b 0
+:: Deactivate virtual environment
+call venv\Scripts\deactivate.bat
+echo Virtual environment deactivated
+
+pause
