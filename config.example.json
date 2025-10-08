@@ -1,0 +1,32 @@
+{
+  "model_config": {
+    "model_type": "remote",
+    "api_type": "openai",
+    "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "api_key": "sk-4206dd19e98748329de88e34cbe0a2d0",
+    "model_name": "qwen3-max",
+    "temperature": 0.1,
+    "max_tokens": 4096,
+    "timeout": 60
+  },
+  "ner_config": {
+    "enable_parallel": false,
+    "num_workers": 4,
+    "max_chunk_size": 450,
+    "supported_entity_types": [
+      "人名",
+      "地名",
+      "机构名",
+      "手机号",
+      "身份证号",
+      "银行卡号",
+      "电子邮箱",
+      "IPv4地址",
+      "时间"
+    ]
+  },
+  "prompt_template": {
+    "system_prompt": "你是一个专业的命名实体识别助手。请识别文本中的敏感信息，包括：人名、地名、机构名、手机号、身份证号、银行卡号、电子邮箱、IPv4地址、时间。",
+    "user_prompt": "请识别以下文本中的实体信息，返回JSON格式，包含字段：span(实体文本), type(实体类型), start(起始位置), end(结束位置), prob(置信度0-1)。\n\n文本：{text}\n\n要求：\n1. 返回格式必须是标准JSON数组\n2. 每个实体必须包含所有字段\n3. start和end是字符位置索引\n4. 只返回JSON数组，不要其他说明"
+  }
+}

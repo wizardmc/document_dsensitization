@@ -126,15 +126,9 @@ class ModelDownloadThread(QThread):
 
 class ModelManager:
     """模型管理器，负责检查模型是否存在并提供下载功能"""
-    
-    # 模型信息配置
+
+    # 模型信息配置（移除了本地NER模型）
     MODEL_CONFIGS = {
-        "ner": {
-            "model_id": "iic/nlp_raner_named-entity-recognition_chinese-base-generic",
-            "model_type": "ner",
-            "description": "命名实体识别模型",
-            "allow_patterns": None
-        },
         "pdf_extract": {
             "model_id": "opendatalab/PDF-Extract-Kit-1.0",
             "model_type": "pdf_extract",

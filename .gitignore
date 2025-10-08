@@ -9,3 +9,32 @@ v0.1.0归档2025.3.26.15.37.zip
 build/
 脱敏工具介绍.zip
 .vscode/settings.json
+
+# 配置文件（包含敏感信息）
+config.json
+
+# Python缓存
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# 系统文件
+.DS_Store
+Thumbs.db

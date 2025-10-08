@@ -1,0 +1,13 @@
+# 核心依赖
+openai>=1.0.0
+requests>=2.28.0
+tqdm>=4.64.0
+
+# PDF处理依赖（可选，仅处理PDF时需要）
+modelscope>=1.9.0
+
+# GUI依赖
+PyQt5>=5.15.0
+
+# 文档处理依赖
+magic-pdf>=0.6.0

@@ -20,14 +20,16 @@
   - 支持自定义脱敏词及对应的脱敏值
 - 💾 持久化存储：同一敏感信息在不同文档中保持一致的脱敏值
 - 🔄 一键解敏：支持将 AI 处理后的文档快速还原
+- 🌐 **远程模型支持**：支持使用远程AI模型(OpenAI/vLLM)进行实体识别，无需本地部署NER模型
 
 ## 🚀 快速开始
 
 ### 系统要求
 
 - Python 3.10 或更高版本
-- 8GB 或以上内存
-- 约 5.2GB 磁盘空间（用于存储 AI 模型）
+- 4GB 或以上内存（使用远程模型）/ 8GB 或以上内存（使用本地PDF模型）
+- 约 5GB 磁盘空间（用于PDF处理模型，可选）
+- 远程AI模型API访问权限（OpenAI API 或 vLLM 等）
 
 ### Windows 安装步骤
 
@@ -37,9 +39,19 @@
    cd Local_Document_AI_Desensitization_Tool
    ```
 2. 安装 Python 3.10+（如未安装）
-3. 如需处理 Office 文档，请安装 [LibreOffice](https://www.libreoffice.org/download/download/)
-4. 双击运行 `run.bat`
-5. 等待安装依赖、下载模型
+3. 安装依赖：
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. 配置远程模型（**重要**）：
+   - 启动应用后，点击菜单 `设置` -> `远程模型配置`
+   - 填写API地址、密钥、模型名称等信息
+   - 详见 [远程模型配置说明](REMOTE_MODEL_CONFIG.md)
+5. （可选）如需处理 Office 文档，请安装 [LibreOffice](https://www.libreoffice.org/download/download/)
+6. 双击运行 `run.bat` 或执行：
+   ```bash
+   python Data_Masking/ui/gui_app.py
+   ```
 
 ### macOS 安装步骤
 
@@ -48,18 +60,53 @@
    ```bash
    brew install python@3.10
    ```
-3. 安装 LibreOffice（如需处理office文档）：
+3. 安装依赖：
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. 配置远程模型（**重要**）：
+   - 启动应用后，点击菜单 `设置` -> `远程模型配置`
+   - 详见 [远程模型配置说明](REMOTE_MODEL_CONFIG.md)
+5. （可选）安装 LibreOffice（如需处理office文档）：
    ```bash
    brew install --cask libreoffice
    ```
-4. 为启动脚本添加执行权限：
+6. 运行应用：
    ```bash
-   chmod +x /Users/huangweihao/Local_Document_AI_Desensitization_Tool/run.sh
+   python Data_Masking/ui/gui_app.py
    ```
-5. 运行启动脚本：
-   ```bash
-   ./run.sh
-   ```
+
+## 🌐 远程模型配置
+
+本工具支持使用远程AI模型进行实体识别，无需下载大型本地NER模型：
+
+### 支持的模型类型
+- **OpenAI API**（官方或兼容接口）
+- **vLLM**（本地部署的开源模型）
+- **其他自定义API**
+
+### 配置步骤
+1. 启动应用，点击 `设置` -> `远程模型配置`
+2. 填写模型配置信息：
+   - API地址（如：`http://localhost:8000/v1`）
+   - API密钥
+   - 模型名称（如：`qwen2.5-7b`）
+3. 自定义提示词模板（可选）
+4. 测试连接并保存
+
+详细配置教程请查看：[远程模型配置说明](REMOTE_MODEL_CONFIG.md)
+
+### vLLM 快速部署示例
+```bash
+# 安装vLLM
+pip install vllm
+
+# 启动模型服务
+python -m vllm.entrypoints.openai.api_server \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --served-model-name qwen2.5-7b \
+    --port 8000
+```
 
 ## 📢 即将推出
 

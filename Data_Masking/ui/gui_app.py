@@ -110,12 +110,19 @@ class ProcessingThread(QThread):
     
     def run(self):
         try:
+            print(f"[DEBUG] 开始处理文件: {self.file_path}")
+            print(f"[DEBUG] 输出目录: {self.output_dir}")
+            print(f"[DEBUG] 是否脱敏: {self.is_mask}")
+            
             # 设置混合上下文感知策略
+            print("[DEBUG] 正在设置混合上下文感知策略...")
             hybrid_strategy = HybridContextStrategy(mapping_file=os.path.join(MAP_FOLDER, 'hybrid_mapping.pkl'))
             self.masker.set_default_strategy(hybrid_strategy)
+            print("[DEBUG] 策略设置完成")
             
             # 将自定义脱敏词添加到混合策略中
             if self.custom_words:
+                print(f"[DEBUG] 添加 {len(self.custom_words)} 个自定义脱敏词...")
                 for original, replacement in self.custom_words.items():
                     try:
                         if not hybrid_strategy.set_custom_replacement(original, replacement):
@@ -147,9 +154,11 @@ class ProcessingThread(QThread):
                 masked_md_file_path = os.path.join(self.output_dir, f'{original_name}_masked.md')
                 masked_content_list_path = os.path.join(self.output_dir, f'{original_name}_masked_content_list.json')
                 
+                print(f"[DEBUG] 目标输出文件: {masked_md_file_path}")
+                
                 # 检查是否只需要应用自定义脱敏词（如果文件已存在且有自定义脱敏词）
                 if os.path.exists(masked_md_file_path) and self.custom_words:
-                    print(f"检测到已有脱敏文件，使用混合策略重新处理: {masked_md_file_path}")
+                    print(f"[DEBUG] 检测到已有脱敏文件，使用混合策略重新处理: {masked_md_file_path}")
                     # 读取现有的脱敏文件
                     with open(masked_md_file_path, 'r', encoding='utf-8') as f:
                         masked_md_content = f.read()
@@ -163,13 +172,25 @@ class ProcessingThread(QThread):
                         f.write(masked_md_content)
                 else:
                     # 执行完整的脱敏处理
-                    masked_md_content, masked_content_list_path = self.doc_masker.process_document_file(
-                        file_path=self.file_path,
-                        mask=True,
-                        output_dir=self.output_dir,
-                        save_mapping=True,
-                        enable_parallel=False
-                    )
+                    print(f"[DEBUG] 开始调用 process_document_file...")
+                    print(f"[DEBUG] 文件扩展名: {os.path.splitext(self.file_path)[1]}")
+                    try:
+                        masked_md_content, masked_content_list_path = self.doc_masker.process_document_file(
+                            file_path=self.file_path,
+                            mask=True,
+                            output_dir=self.output_dir,
+                            save_mapping=True,
+                            enable_parallel=False
+                        )
+                        print(f"[DEBUG] process_document_file 调用成功")
+                    except Exception as doc_error:
+                        print(f"[ERROR] process_document_file 调用失败!")
+                        print(f"[ERROR] 错误类型: {type(doc_error).__name__}")
+                        print(f"[ERROR] 错误信息: {str(doc_error)}")
+                        import traceback
+                        print(f"[ERROR] 完整堆栈跟踪:")
+                        traceback.print_exc()
+                        raise
                 
                 # 提取敏感实体阶段
                 self.step_signal.emit("提取敏感实体...")
@@ -406,10 +427,37 @@ class MainWindow(QMainWindow):
         
         # 初始化模型管理器
         self.model_manager = None
-        
+
+        # 创建菜单栏
+        self.create_menu_bar()
+
         # 检查模型是否存在
         self.check_models()
     
+    def create_menu_bar(self):
+        """创建菜单栏"""
+        menubar = self.menuBar()
+
+        # 设置菜单
+        settings_menu = menubar.addMenu("设置")
+
+        # 远程模型配置
+        remote_model_action = settings_menu.addAction("远程模型配置")
+        remote_model_action.triggered.connect(self.open_remote_model_config)
+
+        # 帮助菜单
+        help_menu = menubar.addMenu("帮助")
+
+        # 下载模型
+        download_models_action = help_menu.addAction("下载PDF处理模型")
+        download_models_action.triggered.connect(lambda: self.check_models(silent=False))
+
+    def open_remote_model_config(self):
+        """打开远程模型配置对话框"""
+        from Data_Masking.ui.remote_model_config_dialog import RemoteModelConfigDialog
+        dialog = RemoteModelConfigDialog(self)
+        dialog.exec_()
+
     def init_masker(self):
         """初始化脱敏器"""
         global MAP_FOLDER, OUTPUT_FOLDER, UPLOAD_FOLDER
