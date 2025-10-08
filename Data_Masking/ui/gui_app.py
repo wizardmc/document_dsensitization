@@ -431,8 +431,8 @@ class MainWindow(QMainWindow):
         # 创建菜单栏
         self.create_menu_bar()
 
-        # 检查模型是否存在
-        self.check_models()
+        # 不再在启动时检查模型
+        # self.check_models()
     
     def create_menu_bar(self):
         """创建菜单栏"""

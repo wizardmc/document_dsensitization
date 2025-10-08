@@ -146,12 +146,20 @@ class RemoteNERModel:
         print("-" * 80)
 
         try:
-            response = self.client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
+            # 构建API调用参数
+            api_params = {
+                "model": model_name,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            
+            # 对于支持 enable_thinking 的模型（如通义千问），在非流式调用时必须设置为 false
+            # 参考：https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api
+            if 'qwen' in model_name.lower():
+                api_params["extra_body"] = {"enable_thinking": False}
+            
+            response = self.client.chat.completions.create(**api_params)
 
             response_text = response.choices[0].message.content
             
